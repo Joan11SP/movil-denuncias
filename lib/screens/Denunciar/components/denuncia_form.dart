@@ -349,9 +349,6 @@ class _FormDenunciaState extends State<FormDenuncia> {
     try {
       if (!await location.serviceEnabled()) {
         await location.requestService();
-      } else {
-        setState(() {
-        });
       }
     } on Exception catch (e) {
       print('ERROR $e');

@@ -1,5 +1,8 @@
+import 'package:movil_denuncias/Services/shared_preferences.dart';
+import 'package:movil_denuncias/components/botones.dart';
 import 'package:movil_denuncias/screens/Denunciar/denuncia_view.dart';
 import 'package:movil_denuncias/screens/MisDenuncias/misdenuncias_screen.dart';
+import 'package:movil_denuncias/screens/sign_in/sign_in_screen.dart';
 import 'package:movil_denuncias/size_config.dart';
 import 'package:flutter/material.dart';
 
@@ -40,7 +43,13 @@ class Body extends StatelessWidget {
           ProfileMenu(
             text: "Cerrar Sesión",
             icon: "assets/icons/Log out.svg",
-            press: () {},
+            press: () async {
+              mostrarLoading(context);
+              await removePerfil();
+              Navigator.pop(context);
+              await Navigator.of(context).pushNamedAndRemoveUntil(
+                      SignInScreen.routeName, (Route<dynamic> route) => false);
+            },
           ),
           Image.asset(
                   'assets/images/logo.png',

@@ -8,7 +8,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mapbox_gl/mapbox_gl.dart';
 import '../../../components/botones.dart';
-import 'package:movil_denuncias/screens/Denunciar/denuncia_view.dart';
 import 'package:location/location.dart' as loc;
 
 class BodyMapa extends StatefulWidget {
@@ -18,21 +17,22 @@ class BodyMapa extends StatefulWidget {
 
 class _BodyMapaState extends State<BodyMapa> {
   MapboxMapController mapController;
-  double latitud, longuitud;
-  String referencias;
-  String calles;
+  double latitud, longitud,markerLatitud,markerLongitud;
+  String referencias,calles;
+  bool gpsActivado = false;
   String marker = 'assets/images/ubi2.png';
   loc.Location location = loc.Location();
 
   position() {
     try {
       location.onLocationChanged.listen((loc.LocationData currentLocation) {
+        
         if (mounted) {
-          setState(() {
+          setState(() {            
             print(currentLocation.latitude);
             print(currentLocation.longitude);
             latitud = currentLocation.latitude;
-            longuitud = currentLocation.longitude;
+            longitud = currentLocation.longitude;
           });
         }
       });
@@ -41,82 +41,113 @@ class _BodyMapaState extends State<BodyMapa> {
     }
   }
 
+  Future checkGps() async {
+    try {
+      if (!await location.serviceEnabled()) {
+        await location.requestService();
+        if(await location.serviceEnabled()){
+          setState(() {
+            gpsActivado = true;
+            position();
+          });
+        }
+      } else {
+        setState(() {
+          gpsActivado = true;
+          return position();
+        });
+      }
+      
+    } on Exception catch (e) {
+      print('ERROR $e');
+    }
+  }
+
   @override
   void initState() {
-    position();
+    checkGps();
     super.initState();
   }
 
   @override
   void dispose() {
-    mapController.dispose();
+    if (latitud != null) {
+      mapController.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    position();
-    return SingleChildScrollView(
-          child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            child: viewMap(),
-            height: getProportionateScreenHeight(440),
-          ),
-          escribirUbicacion()
-        ],
-      ),
-    );
+    return latitud == null
+        ? Padding(
+            padding: EdgeInsets.all(20),
+            child: Center(
+                child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                gpsActivado==false
+                ? DefaultButton(
+                  text: 'Activar ubicación',
+                  press: () async {
+                    await checkGps();
+                  },
+                )
+                : Center(child: CircularProgressIndicator(strokeWidth: 1))
+              ],
+            )),
+          )
+        : SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  child: viewMap(),
+                  height: getProportionateScreenHeight(500),
+                ),
+                SizedBox(height: getProportionateScreenHeight(20)),
+                escribirUbicacion()
+              ],
+            ),
+          );
   }
 
   addSymbolMap([coordinates]) async {
     mapController.addSymbol(SymbolOptions(
         zIndex: 1,
-        geometry: LatLng(coordinates.latitude,coordinates.longitude), // location is 0.0 on purpose for this example
+        geometry: LatLng(
+            coordinates.latitude,
+            coordinates
+                .longitude), // location is 0.0 on purpose for this example
         iconImage: marker,
         iconSize: 0.25));
     await mapController.clearSymbols();
   }
 
   viewMap() {
-    return latitud == null
-        ? Center(
-            child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              CircularProgressIndicator(
-                strokeWidth: 1,
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              Text('Obteniendo ubicación')
-            ],
-          ))
-        : MapboxMap(
-          onStyleLoadedCallback: () {
-            mapController.addSymbol(SymbolOptions(
-                geometry: LatLng(latitud, longuitud),
-                iconImage: marker,
-                iconSize: 0.25,
-                iconColor: 'blue'));
-          },
-          initialCameraPosition: CameraPosition(
-              target: LatLng(latitud, longuitud), zoom: 16.5),
-          styleString: MapboxStyles.MAPBOX_STREETS,
-          compassEnabled: false,
-          rotateGesturesEnabled: false,
-          onMapClick: (point, coordinates) {
-            addSymbolMap(coordinates);
-            setState(() {
-              latitud = coordinates.latitude;
-              longuitud = coordinates.longitude;
-            });
-          },
-          onMapCreated: onMapCreated,
-        );
+    return MapboxMap(
+      onStyleLoadedCallback: () {
+        mapController.addSymbol(SymbolOptions(
+            geometry: LatLng(latitud, longitud),
+            iconImage: marker,
+            iconSize: 0.25,
+            iconColor: 'blue'));
+      },
+      initialCameraPosition:
+          CameraPosition(target: LatLng(latitud, longitud), zoom: 16.5),
+      styleString: MapboxStyles.MAPBOX_STREETS,
+      compassEnabled: false,
+      rotateGesturesEnabled: false,
+      onMapClick: (point, coordinates) {
+        addSymbolMap(coordinates);
+        setState(() {
+          markerLatitud = coordinates.latitude;
+          markerLongitud = coordinates.longitude;          
+        });
+      },
+      onMapCreated: onMapCreated,
+    );
   }
 
   void onMapCreated(MapboxMapController controller) {
@@ -160,24 +191,26 @@ class _BodyMapaState extends State<BodyMapa> {
               child: Text('Continuar'),
               onPressed: () {
                 obtenerDatosUbicacion();
-              }
-          ),
+              }),
         ],
       ),
     );
   }
 
   obtenerDatosUbicacion() async {
-    if (latitud != null && longuitud != null && referencias != null && calles !=null) {
+
+    if (latitud != null && longitud != null && referencias != null && calles != null) {
       Map ubicacion = {
-        'latitud': latitud,
-        'longitud': longuitud,
+        'latitud': markerLatitud == null ? latitud : markerLatitud,
+        'longitud': markerLongitud == null ? longitud: markerLongitud,
         'referencia': referencias,
-        'calles':calles
+        'calles': calles
       };
       await guardarUbicacionDenuncia(ubicacion);
+      if(markerLatitud!=null){
+        mostrarMensaje('Se tomó la posición marcada en el mapa', context, 3);
+      }
       Navigator.pop(context);
-
     } else {
       mostrarMensaje('Llena los campos', context, 3);
     }

@@ -13,3 +13,6 @@ crearPersona(persona){
 filtrarDenuncias(persona){
   return http.post('$urlServicio/filtrar-denuncias',body: {'id_persona':persona});
 }
+crearLoginFacebook(facebook){
+  return http.post('$urlServicio/crear-login-facebook', body: json.encode(facebook),headers: headers);
+}

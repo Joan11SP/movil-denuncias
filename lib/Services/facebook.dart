@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_facebook_login/flutter_facebook_login.dart';
 
@@ -18,10 +19,12 @@ Future loginFacebook(context) async {
         return profile;
         break;
       case FacebookLoginStatus.cancelledByUser:
+        Navigator.pop(context);
         print('Login cancelled by the user.'.toUpperCase());
         break;
       case FacebookLoginStatus.error:
         print('fallo login ${result.errorMessage}');
+        Navigator.pop(context);
         break;
     }
   } on Exception catch (e) {

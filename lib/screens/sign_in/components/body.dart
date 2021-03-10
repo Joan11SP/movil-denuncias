@@ -5,6 +5,7 @@ import 'package:movil_denuncias/Services/facebook.dart';
 import 'package:movil_denuncias/components/no_account_text.dart';
 import 'package:movil_denuncias/components/socal_card.dart';
 import 'package:movil_denuncias/models/model_Persona.dart';
+import 'package:movil_denuncias/screens/sign_in/controllers/controller_sign_in.dart';
 import '../../../size_config.dart';
 import 'sign_form.dart';
 
@@ -46,10 +47,15 @@ class _BodyState extends State<Body> {
                       press: () async {
                         mostrarLoading(context);
                         Map facebookprofile = await loginFacebook(context);
-                        
+                        Map persona = {
+                          'email':facebookprofile['email'],
+                          'first_name':facebookprofile['first_name'],
+                          'last_name':facebookprofile['last_name'],
+                          'foto':facebookprofile['picture']['data']['url']
+                        };
+
                         if(facebookprofile != null){
-                          await login(facebookprofile,context);
-                          
+                          await enviarFacebook(persona,context);                          
                         }
                       },
                     ),

@@ -15,6 +15,10 @@ obtenerPerfil() async {
   final shared = await _prefs;
   return shared.getString(session);
 }
+removePerfil() async {
+  final shared = await _prefs;
+  return shared.remove(session);
+}
 guardarUbicacionDenuncia(Map ubicacion) async {
   final shared = await _prefs;
   shared.setString(ubicacionDenuncia, json.encode(ubicacion));
